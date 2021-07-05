@@ -347,7 +347,7 @@ $Menu_MassUpdates = @(
 )
 
 $Menu_Actions = @(
-    "Create, Enable and Modify Group Membership of LDAP users"
+    "New LDAP users: Create, Enable and Modify Group Memberships"
     "Reset a User's Password"
     "Unlock a User's Account"
     "Enable a User's Account"
@@ -511,7 +511,7 @@ Function Show-LDAPMenu {
         "Quick Actions" {
             Clear-Host
             Switch (Menu $Menu_Actions) {
-                "Create, Enable and Modify Group Membership of LDAP users" {
+                "New LDAP users: Create, Enable and Modify Group Memberships" {
                     # Create LDAP users from clipboard
                     Invoke-LDIF_Config
 
@@ -522,30 +522,24 @@ Function Show-LDAPMenu {
                         $Group = $Entry.groupDN
 
                         Get-ADuser $User -Server LocalHost:389 | Enable-ADAccount -Server localhost:389
-
-                        If ((Get-ADuser $User -Server LocalHost:389).Enabled) {
-                            Out-LogFile -Result "Success" -Message "Enable $($User)"
-                        }
-                        Else {
-                            Out-LogFile -Result "Failed" -Message "Enable $($User)"
-                        }
-
-                        # Display Results
-                        Import-CSV $Global:LDAPLogFile_Operation | Out-GridView -Title "Results for Enabling the User Account\s"
-                        Remove-Item -Path $Global:LDAPLogFile_Operation
-
                         Add-ADGroupMember -Identity $Group -members $User -Server localhost:389
 
-                        If ((Get-ADUser -Identity $User -Properties MemberOf -Server localhost:389).MemberOf -eq $Group) {
-                            Out-LogFile -Result "Success" -Message "Add $($User) to $($Group)"
+                        If (((Get-ADuser $User -Server LocalHost:389).Enabled) -and ((Get-ADUser -Identity $User -Properties MemberOf -Server localhost:389).MemberOf -eq $Group)) {
+                            Out-LogFile -Result "Success" -Message "$($User) enabled and added to $($Group)"
+                        }
+                        elseif ((!(Get-ADuser $User -Server LocalHost:389).Enabled) -and ((Get-ADUser -Identity $User -Properties MemberOf -Server localhost:389).MemberOf -eq $Group)) {
+                            Out-LogFile -Result "Partially Failed" -Message "$($User) not enabled, but added to $($Group)"
+                        }
+                        elseif (((Get-ADuser $User -Server LocalHost:389).Enabled) -and (!(Get-ADUser -Identity $User -Properties MemberOf -Server localhost:389).MemberOf -eq $Group)) {
+                            Out-LogFile -Result "Partially Failed" -Message "$($User) enabled, but not added to $($Group)"
                         }
                         Else {
-                            Out-LogFile -Result "Failed" -Message "Add $($User) to $($Group)"
+                            Out-LogFile -Result "Failed" -Message "$($User) not enabled and not added to $($Group)"
                         }
                     }
 
                     # Display Results
-                    Import-CSV $Global:LDAPLogFile_Operation | Out-GridView -Title "Results of Adding User\s to Group\s"
+                    Import-CSV $Global:LDAPLogFile_Operation | Out-GridView -Title "User Enablement / Group Membership Modification Results"
                     Remove-Item -Path $Global:LDAPLogFile_Operation
                     Show-LDAPMenu
                 }
