@@ -348,6 +348,7 @@ $Menu_MassUpdates = @(
 
 $Menu_Actions = @(
     "New LDAP users: Create, Enable and Modify Group Memberships"
+    "View User Account"
     "Reset a User's Password"
     "Unlock a User's Account"
     "Enable a User's Account"
@@ -541,6 +542,20 @@ Function Show-LDAPMenu {
                     # Display Results
                     Import-CSV $Global:LDAPLogFile_Operation | Out-GridView -Title "User Enablement / Group Membership Modification Results"
                     Remove-Item -Path $Global:LDAPLogFile_Operation
+                    Show-LDAPMenu
+                }
+                "View User Account" {
+
+                    # Prompt user for DisplaName input to query AD for account properties
+                    Clear-Host
+
+                    $UserToQuery = read-host -Prompt "Enter the DisplayName of the user account"
+
+                    Get-ADUser -filter { (displayName -like $UserToQuery) -and (ObjectClass -eq 'RMGPerson') } -Server localhost:389 -SearchBase "OU=RED,DC=red,DC=royalmailgroup,DC=net" -Properties DistinguishedName, Name, Enabled, EmployeeNumber, MemberOf
+
+                    write-host -NoNewline 'Press any key to continue...';
+                    $null = $host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown');
+
                     Show-LDAPMenu
                 }
                 "Reset a User's Password" {
